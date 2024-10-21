@@ -1,4 +1,5 @@
 from typing import List, Any
+import os
 
 from llama_index.core.schema import Document
 from llama_index.core.embeddings import BaseEmbedding
@@ -46,13 +47,8 @@ class LLMResponseEvent(Event):
 
 
 class ResearchAssistantWorkflow(Workflow):
-    def __init__(
-        self,
-        *args: Any,
-        llm: LLM,
-        embed_model: BaseEmbedding,
-        **kwargs: Any,
-    ) -> None:
+    def __init__(self,*args: Any,llm: LLM,embed_model: BaseEmbedding,**kwargs: Any,) -> None:
+
         super().__init__(*args, **kwargs)
         self.llm = llm
         self.embed_model = embed_model
@@ -64,7 +60,7 @@ class ResearchAssistantWorkflow(Workflow):
     ) -> SubQueriesCreatedEvent:
         query = ev.query
         await ctx.set("query", query)
-        sub_queries = await get_sub_queries(query, self.llm)
+        sub_queries = await get_sub_queries(query, self.llm, num_sub_queries = 4)
         await ctx.set("num_sub_queries", len(sub_queries))
         return SubQueriesCreatedEvent(sub_queries=sub_queries)
 
@@ -87,7 +83,7 @@ class ResearchAssistantWorkflow(Workflow):
         self.visited_urls = visited_urls
         return DocsScrapedEvent(sub_query=sub_query, docs=docs)
 
-    @step(num_workers=3)
+    @step(num_workers = 4)
     async def compress_docs(self, ev: DocsScrapedEvent) -> ToCombineContextEvent:
         sub_query = ev.sub_query
         docs = ev.docs
@@ -113,7 +109,7 @@ class ResearchAssistantWorkflow(Workflow):
             context += (
                 f'Research findings for topic "{event.sub_query}":\n{event.context}\n\n'
             )
-
+      
         return ReportPromptCreatedEvent(context=context)
 
     @step
@@ -126,6 +122,8 @@ class ResearchAssistantWorkflow(Workflow):
         report = await generate_report_from_context(query, context, self.llm)
         pdf = MarkdownPdf()
         pdf.add_section(Section(report, toc=False))
-        pdf.save("report.pdf")
+        report_path = os.path.abspath("report.pdf")  # Get full path
+        
+        pdf.save(report_path)
         print("\n> Done writing report to report.pdf! Trying to open the file...\n")
-        return StopEvent(result="report.pdf")
+        return StopEvent(result= report_path)

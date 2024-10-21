@@ -4,11 +4,12 @@ import requests
 from dotenv import load_dotenv
 
 from llama_index.core.schema import Document
+load_dotenv()
+api_key = os.getenv("TAVILY_API")
 
 
 async def get_docs_from_tavily_search(sub_query: str, visited_urls: set[str]):
-    load_dotenv()
-    api_key = os.getenv("TAVILY_API_KEY")
+    
     base_url = "https://api.tavily.com/search"
     headers = {
         "Content-Type": "application/json",

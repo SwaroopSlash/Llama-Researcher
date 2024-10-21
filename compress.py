@@ -20,7 +20,7 @@ async def get_compressed_context(
 
     nodes = retriever.retrieve(query)
 
-    processor = SimilarityPostprocessor(similarity_cutoff=0.38)
+    processor = SimilarityPostprocessor(similarity_cutoff=0.42)
     filtered_nodes = processor.postprocess_nodes(nodes)
     # print(filtered_nodes)
     print(
